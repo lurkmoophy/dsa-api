@@ -1,4 +1,5 @@
-"best-documentation": [
+{
+    "best-documentation": [
     "Who is the documentation primarily for?",
     "How big is your design system team?",
     "How many brands or products does the design system serve?",
@@ -172,3 +173,4 @@
     "If nominating someone else: How have they influenced or helped you?",
     "If nominating yourself: Any quotes, testimonials, or evidence of your impact?"
   ]
+}

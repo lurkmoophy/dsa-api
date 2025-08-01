@@ -12,7 +12,9 @@ app.use(express.json());
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter);
 await db.read();
-db.data ||= { users: {}, questions: {} };
+if (!db.data) {
+    db.data = { users: {}, questions: {} };
+}
 
 // Load questions
 const questionData = JSON.parse(fs.readFileSync('./questions.json', 'utf8'));
