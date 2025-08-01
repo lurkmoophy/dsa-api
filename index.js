@@ -4,6 +4,16 @@ import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import { nanoid } from 'nanoid';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Serve static YAML file at /openapi.yaml
+app.get('/openapi.yaml', (req, res) => {
+  res.sendFile(path.join(__dirname, 'openapi.yaml'));
+});
 
 const app = express();
 app.use(cors());
