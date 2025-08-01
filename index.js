@@ -10,14 +10,16 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static YAML file at /openapi.yaml
-app.get('/openapi.yaml', (req, res) => {
-  res.sendFile(path.join(__dirname, 'openapi.yaml'));
-});
+
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static YAML file at /openapi.yaml
+app.get('/openapi.yaml', (req, res) => {
+  res.sendFile(path.join(__dirname, 'openapi.yaml'));
+});
 
 const adapter = new JSONFile('db.json');
 const db = new Low(adapter, {
