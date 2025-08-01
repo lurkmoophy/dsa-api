@@ -1,0 +1,182 @@
+openapi: 3.1.0
+info:
+  title: DSA Awards API
+  version: 1.0.0
+
+servers:
+  - url: https://dsa-api-tzn0.onrender.com
+
+paths:
+  /categories:
+    get:
+      operationId: getCategories
+      summary: Get all award categories
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+
+  /questions/{category}:
+    get:
+      operationId: getCategoryQuestions
+      summary: Get questions for a category
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category:
+                    type: string
+                  questions:
+                    type: array
+                    items:
+                      type: string
+
+  /answers:
+    post:
+      operationId: postAnswer
+      summary: Save an answer for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                category:
+                  type: string
+                question:
+                  type: string
+                answer:
+                  type: string
+                isGeneral:
+                  type: boolean
+      responses:
+        '200':
+          description: Answer saved
+
+  /answers/{userId}/{category}:
+    get:
+      operationId: getUserCategoryAnswers
+      summary: Get all answers for a user in a category
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Retrieved answers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category:
+                    type: string
+                  general:
+                    type: object
+                    additionalProperties: true
+                  answers:
+                    type: object
+                    additionalProperties: true
+
+  /generate:
+    post:
+      operationId: generateEntry
+      summary: Generate entry content for a category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                category:
+                  type: string
+      responses:
+        '200':
+          description: Generated entry data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userId:
+                    type: string
+                  category:
+                    type: string
+                  general:
+                    type: object
+                    additionalProperties: true
+                  answers:
+                    type: object
+                    additionalProperties: true
+                  questions:
+                    type: array
+                    items:
+                      type: string
+
+  /general-questions:
+    get:
+      operationId: getGeneralQuestions
+      summary: Get the shared general questions
+      responses:
+        '200':
+          description: List of general questions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      type: string
+
+  /needs-general/{category}:
+    get:
+      operationId: checkNeedsGeneral
+      summary: Check if a category requires general questions
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Whether general questions are needed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category:
+                    type: string
+                  needsGeneral:
+                    type: boolean

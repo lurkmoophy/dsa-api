@@ -1,0 +1,9 @@
+[
+  {
+    "type": "openapi",
+    "url": "https://dsa-api.onrender.com/openapi.yaml",
+    "auth": {
+      "type": "none"
+    }
+  }
+]
