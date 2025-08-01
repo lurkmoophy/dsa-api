@@ -4,36 +4,23 @@ import { Low } from 'lowdb';
 import { JSONFile } from 'lowdb/node';
 import { nanoid } from 'nanoid';
 import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Set up LowDB with default structure
-const dbFile = path.join(__dirname, 'db.json');
-const adapter = new JSONFile(dbFile);
-const db = new Low(adapter, {
-  users: {},
-  questions: {},
-});
-
+const adapter = new JSONFile('db.json');
+const db = new Low(adapter);
 await db.read();
-await db.write(); // ensure db.json exists
+db.data ||= {};
+db.data.sessions ||= {};
+db.data.questions ||= {};
 
-// Load questions.json
-const questionsPath = path.join(__dirname, 'questions.json');
-if (fs.existsSync(questionsPath)) {
-  const questionData = JSON.parse(fs.readFileSync(questionsPath, 'utf8'));
-  db.data.questions = questionData;
-  await db.write();
-}
+// Load question bank
+const questionData = JSON.parse(fs.readFileSync('./questions.json', 'utf8'));
+db.data.questions = questionData;
 
-// Categories that use general questions
+// Categories that need general info
 const categoriesRequiringGeneral = new Set([
   "best-documentation",
   "best-accessibility",
@@ -43,13 +30,19 @@ const categoriesRequiringGeneral = new Set([
   "award-for-innovation"
 ]);
 
-// Routes
-
-app.get('/categories', (req, res) => {
-  const categories = Object.keys(db.data.questions);
-  res.json(categories);
+// Endpoint: Create a new session
+app.post('/session', (req, res) => {
+  const sessionId = nanoid();
+  db.data.sessions[sessionId] = { general: {} };
+  res.json({ sessionId });
 });
 
+// Endpoint: Get all categories
+app.get('/categories', (req, res) => {
+  res.json(Object.keys(db.data.questions));
+});
+
+// Endpoint: Get questions for a category
 app.get('/questions/:category', (req, res) => {
   const { category } = req.params;
   const questions = db.data.questions[category];
@@ -57,48 +50,53 @@ app.get('/questions/:category', (req, res) => {
   res.json({ category, questions });
 });
 
+// Endpoint: Save an answer
 app.post('/answers', async (req, res) => {
-  const { userId, category, question, answer, isGeneral } = req.body;
-
-  if (!db.data.users[userId]) db.data.users[userId] = {};
+  const { sessionId, category, question, answer, isGeneral } = req.body;
+  if (!db.data.sessions[sessionId]) db.data.sessions[sessionId] = { general: {} };
 
   if (isGeneral) {
-    db.data.users[userId].general ||= {};
-    db.data.users[userId].general[question] = answer;
+    db.data.sessions[sessionId].general[question] = answer;
   } else {
-    db.data.users[userId][category] ||= {};
-    db.data.users[userId][category][question] = answer;
+    if (!db.data.sessions[sessionId][category]) {
+      db.data.sessions[sessionId][category] = {};
+    }
+    db.data.sessions[sessionId][category][question] = answer;
   }
 
   await db.write();
   res.sendStatus(200);
 });
 
-app.get('/answers/:userId/:category', (req, res) => {
-  const { userId, category } = req.params;
-  const general = db.data.users[userId]?.general || {};
-  const answers = db.data.users[userId]?.[category] || {};
+// Endpoint: Get answers for a category
+app.get('/answers/:sessionId/:category', (req, res) => {
+  const { sessionId, category } = req.params;
+  const session = db.data.sessions[sessionId];
+  if (!session) return res.status(404).send('Session not found');
+
+  const general = session.general || {};
+  const answers = session[category] || {};
   res.json({ category, general, answers });
 });
 
-app.post('/generate', async (req, res) => {
-  const { userId, category } = req.body;
-  const general = db.data.users[userId]?.general || {};
-  const answers = db.data.users[userId]?.[category] || {};
-
-  if (!Object.keys(answers).length) {
+// Endpoint: Generate final entry payload
+app.post('/generate', (req, res) => {
+  const { sessionId, category } = req.body;
+  const session = db.data.sessions[sessionId];
+  if (!session || !session[category]) {
     return res.status(404).send('No answers found for that category.');
   }
 
   res.json({
-    userId,
+    sessionId,
     category,
-    questions: db.data.questions[category],
-    general,
-    answers
+    general: session.general || {},
+    answers: session[category],
+    questions: db.data.questions[category]
   });
 });
 
+// Endpoint: Return general questions
 app.get('/general-questions', (req, res) => {
   res.json({
     questions: [
@@ -110,10 +108,14 @@ app.get('/general-questions', (req, res) => {
   });
 });
 
+// Endpoint: Does this category require general info?
 app.get('/needs-general/:category', (req, res) => {
   const { category } = req.params;
   const needsGeneral = categoriesRequiringGeneral.has(category);
   res.json({ category, needsGeneral });
 });
 
-app.listen(3000, () => console.log('DSA API running on http://localhost:3000'));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`✅ DSA API running on port ${PORT}`);
+});
