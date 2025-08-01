@@ -10,7 +10,10 @@ app.use(cors());
 app.use(express.json());
 
 const adapter = new JSONFile('db.json');
-const db = new Low(adapter);
+const db = new Low(adapter, {
+  sessions: {},
+  questions: {}
+});
 await db.read();
 db.data ||= {};
 db.data.sessions ||= {};
